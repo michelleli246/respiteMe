@@ -1,0 +1,1036 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "connections_twilio_name": {
+            "defaultValue": "twilio",
+            "type": "String"
+        },
+        "connections_bingmaps_name": {
+            "defaultValue": "bingmaps",
+            "type": "String"
+        },
+        "workflows_respiteApp_name": {
+            "defaultValue": "respiteApp",
+            "type": "String"
+        },
+        "connections_msnweather_name": {
+            "defaultValue": "msnweather",
+            "type": "String"
+        },
+        "connections_microsofttranslator_name": {
+            "defaultValue": "microsofttranslator",
+            "type": "String"
+        },
+        "accounts_respiteLocFinder_name": {
+            "defaultValue": "respiteLocFinder",
+            "type": "String"
+        },
+        "accounts_respitetranslator_name": {
+            "defaultValue": "respitetranslator",
+            "type": "String"
+        },
+        "connections_cognitiveservicestextanalytics_name": {
+            "defaultValue": "cognitiveservicestextanalytics",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2016-02-01-preview",
+            "name": "[parameters('accounts_respiteLocFinder_name')]",
+            "location": "canadacentral",
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "TextAnalytics",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2016-02-01-preview",
+            "name": "[parameters('accounts_respitetranslator_name')]",
+            "location": "global",
+            "sku": {
+                "name": "F0"
+            },
+            "kind": "TextTranslation",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('connections_bingmaps_name')]",
+            "location": "canadaeast",
+            "properties": {
+                "displayName": "respiteMapConnect",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/', parameters('connections_bingmaps_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('connections_cognitiveservicestextanalytics_name')]",
+            "location": "canadaeast",
+            "properties": {
+                "displayName": "respiteLocFinder",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/', parameters('connections_cognitiveservicestextanalytics_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('connections_microsofttranslator_name')]",
+            "location": "canadaeast",
+            "properties": {
+                "displayName": "respitetranslator",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/', parameters('connections_microsofttranslator_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('connections_msnweather_name')]",
+            "location": "canadaeast",
+            "properties": {
+                "displayName": "MSN Weather",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/', parameters('connections_msnweather_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('connections_twilio_name')]",
+            "location": "canadaeast",
+            "properties": {
+                "displayName": "respiteTwi",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/', parameters('connections_twilio_name'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('workflows_respiteApp_name')]",
+            "location": "canadaeast",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/connections', parameters('connections_bingmaps_name'))]",
+                "[resourceId('Microsoft.Web/connections', parameters('connections_cognitiveservicestextanalytics_name'))]",
+                "[resourceId('Microsoft.Web/connections', parameters('connections_microsofttranslator_name'))]",
+                "[resourceId('Microsoft.Web/connections', parameters('connections_msnweather_name'))]",
+                "[resourceId('Microsoft.Web/connections', parameters('connections_twilio_name'))]"
+            ],
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "manual": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Detect_Language": {
+                            "runAfter": {
+                                "Initialize_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "text": "@variables('clientLocationStr')"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['cognitiveservicestextanalytics']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/text/analytics/v2.1/languages"
+                            }
+                        },
+                        "Get_client_phone_number": {
+                            "runAfter": {},
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "clientNumber",
+                                        "type": "String",
+                                        "value": "@{triggerFormDataValue('From')}"
+                                    }
+                                ]
+                            }
+                        },
+                        "Get_current_temperature": {
+                            "runAfter": {
+                                "Get_current_weather": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "temperature",
+                                        "type": "Float",
+                                        "value": "@body('Get_current_weather')?['responses']?['weather']?['current']?['temp']"
+                                    }
+                                ]
+                            }
+                        },
+                        "Get_current_weather": {
+                            "runAfter": {
+                                "Get_client_phone_number": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['msnweather']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/current/@{encodeURIComponent('Toronto')}",
+                                "queries": {
+                                    "units": "Metric"
+                                }
+                            }
+                        },
+                        "Initialize_centre_status_message": {
+                            "runAfter": {
+                                "Initialize_location_var": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "centreStatusMessage",
+                                        "type": "String",
+                                        "value": "NONE"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_closest_centre_name_message": {
+                            "runAfter": {
+                                "Initialize_dist3": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "msgCentreName",
+                                        "type": "String",
+                                        "value": "has been determined as the closest respite centre, located at"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_dist1": {
+                            "runAfter": {
+                                "Initialize_centre_status_message": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "dist1",
+                                        "type": "Integer",
+                                        "value": 0
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_dist2": {
+                            "runAfter": {
+                                "Initialize_dist1": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "dist2",
+                                        "type": "Float",
+                                        "value": 0
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_dist3": {
+                            "runAfter": {
+                                "Initialize_dist2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "dist3",
+                                        "type": "Float",
+                                        "value": 0
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_location_var": {
+                            "runAfter": {
+                                "Detect_Language": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "clientLocation",
+                                        "type": "String",
+                                        "value": "none"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_travel_time_map_message": {
+                            "runAfter": {
+                                "Initialize_closest_centre_name_message": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "msgTravelTimeMap",
+                                        "type": "String",
+                                        "value": "The location of the respite centre has been provided. Walking from your location to the centre will take approximately"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_travel_time_unit_message": {
+                            "runAfter": {
+                                "Initialize_travel_time_map_message": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "min",
+                                        "type": "String",
+                                        "value": "minutes"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable": {
+                            "runAfter": {
+                                "Get_current_temperature": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "clientLocationStr",
+                                        "type": "String",
+                                        "value": "@{triggerFormDataValue('Body')}"
+                                    }
+                                ]
+                            }
+                        },
+                        "Temperature_condition": {
+                            "actions": {
+                                "Condition_dist1_low": {
+                                    "actions": {
+                                        "Closest_centre_name,_address": {
+                                            "runAfter": {},
+                                            "type": "ApiConnection",
+                                            "inputs": {
+                                                "body": {
+                                                    "body": "Fort York Residence @{variables('msgCentreName')} @{body('Get_route')?['routeLegs']?['endLocation']?['address']?['formattedAddress']}.",
+                                                    "from": "+16477244717",
+                                                    "to": "@variables('clientNumber')"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "post",
+                                                "path": "/Messages.json"
+                                            }
+                                        },
+                                        "Closest_centre_travel_time,_map": {
+                                            "runAfter": {
+                                                "Closest_centre_name,_address": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection",
+                                            "inputs": {
+                                                "body": {
+                                                    "body": " @{variables('msgTravelTimeMap')} @{div(body('Get_route_2')?['travelDurationTraffic'],60)} @{variables('min')}.",
+                                                    "from": "+16477244717",
+                                                    "media_url": [
+                                                        "https://i.imgur.com/jAFBQo2.png"
+                                                    ],
+                                                    "to": "@variables('clientNumber')"
+                                                },
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "post",
+                                                "path": "/Messages.json"
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Set_dist1": [
+                                            "Succeeded"
+                                        ],
+                                        "Set_dist2": [
+                                            "Succeeded"
+                                        ],
+                                        "Set_dist3": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "Condition_dist2_low": {
+                                                "actions": {
+                                                    "Send_Text_Message_(SMS)": {
+                                                        "runAfter": {
+                                                            "Send_Text_Message_(SMS)_2": [
+                                                                "Succeeded"
+                                                            ]
+                                                        },
+                                                        "type": "ApiConnection",
+                                                        "inputs": {
+                                                            "body": {
+                                                                "body": "@{variables('msgTravelTimeMap')} @{div(body('Get_route_2')?['travelDurationTraffic'],60)} @{variables('min')}.",
+                                                                "from": "+16477244717",
+                                                                "media_url": [
+                                                                    "https://i.imgur.com/Qni6ntt.png"
+                                                                ],
+                                                                "to": "@variables('clientNumber')"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/Messages.json"
+                                                        }
+                                                    },
+                                                    "Send_Text_Message_(SMS)_2": {
+                                                        "runAfter": {},
+                                                        "type": "ApiConnection",
+                                                        "inputs": {
+                                                            "body": {
+                                                                "body": "The Scott's Mission @{variables('msgCentreName')} @{body('Get_route')?['routeLegs']?['endLocation']?['address']?['formattedAddress']}.",
+                                                                "from": "+16477244717",
+                                                                "to": "@variables('clientNumber')"
+                                                            },
+                                                            "host": {
+                                                                "connection": {
+                                                                    "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                                }
+                                                            },
+                                                            "method": "post",
+                                                            "path": "/Messages.json"
+                                                        }
+                                                    }
+                                                },
+                                                "runAfter": {},
+                                                "else": {
+                                                    "actions": {
+                                                        "Send_Text_Message_(SMS)_3": {
+                                                            "runAfter": {},
+                                                            "type": "ApiConnection",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "body": "The Good Shepherd's Refuge @{variables('msgCentreName')} @{body('Get_route_3')?['routeLegs']?['endLocation']?['address']?['formattedAddress']}.",
+                                                                    "from": "+16477244717",
+                                                                    "to": "@variables('clientNumber')"
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "post",
+                                                                "path": "/Messages.json"
+                                                            }
+                                                        },
+                                                        "Send_Text_Message_(SMS)_4": {
+                                                            "runAfter": {
+                                                                "Send_Text_Message_(SMS)_3": [
+                                                                    "Succeeded"
+                                                                ]
+                                                            },
+                                                            "type": "ApiConnection",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "body": "@{variables('msgTravelTimeMap')} @{div(body('Get_route_2')?['travelDurationTraffic'],60)} @{variables('min')}.",
+                                                                    "from": "+16477244717",
+                                                                    "media_url": [
+                                                                        "https://i.imgur.com/SL7HIlp.png"
+                                                                    ],
+                                                                    "to": "@variables('clientNumber')"
+                                                                },
+                                                                "host": {
+                                                                    "connection": {
+                                                                        "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                                    }
+                                                                },
+                                                                "method": "post",
+                                                                "path": "/Messages.json"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "expression": {
+                                                    "and": [
+                                                        {
+                                                            "less": [
+                                                                "@variables('dist2')",
+                                                                "@variables('dist3')"
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                "type": "If"
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "less": [
+                                                    "@variables('dist1')",
+                                                    "@variables('dist2')"
+                                                ]
+                                            },
+                                            {
+                                                "less": [
+                                                    "@variables('dist1')",
+                                                    "@variables('dist3')"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Entities": {
+                                    "runAfter": {
+                                        "Send_text_respite_centres_open": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "body": {
+                                            "text": "@variables('clientLocationStr')"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['cognitiveservicestextanalytics']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/text/analytics/v2.1/entities"
+                                    }
+                                },
+                                "For_each": {
+                                    "foreach": "@body('Entities')?['entities']",
+                                    "actions": {
+                                        "Location_entity_condition": {
+                                            "actions": {
+                                                "Set_variable_3": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "clientLocation",
+                                                        "value": "@items('For_each')?['name']"
+                                                    }
+                                                }
+                                            },
+                                            "runAfter": {},
+                                            "expression": {
+                                                "or": [
+                                                    {
+                                                        "equals": [
+                                                            "@items('For_each')?['type']",
+                                                            "Location"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "equals": [
+                                                            "@items('For_each')?['type']",
+                                                            "Quantity-Number"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "type": "If"
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Entities": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "For_each_2": {
+                                    "foreach": "@body('Detect_Language')?['detectedLanguages']",
+                                    "actions": {
+                                        "Set_variable_4": {
+                                            "runAfter": {
+                                                "Translate_text_3": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "msgCentreName",
+                                                "value": "@body('Translate_text_3')"
+                                            }
+                                        },
+                                        "Set_variable_5": {
+                                            "runAfter": {
+                                                "Translate_text": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "centreStatusMessage",
+                                                "value": "@body('Translate_text')"
+                                            }
+                                        },
+                                        "Set_variable_6": {
+                                            "runAfter": {
+                                                "Translate_text_4": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "msgTravelTimeMap",
+                                                "value": "@body('Translate_text_4')"
+                                            }
+                                        },
+                                        "Set_variable_7": {
+                                            "runAfter": {
+                                                "Translate_text_5": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "SetVariable",
+                                            "inputs": {
+                                                "name": "min",
+                                                "value": "@body('Translate_text_5')"
+                                            }
+                                        },
+                                        "Translate_text": {
+                                            "runAfter": {},
+                                            "type": "ApiConnection",
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['microsofttranslator']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/Translate",
+                                                "queries": {
+                                                    "languageTo": "@items('For_each_2')?['iso6391Name']",
+                                                    "query": "@variables('centreStatusMessage')"
+                                                }
+                                            }
+                                        },
+                                        "Translate_text_3": {
+                                            "runAfter": {
+                                                "Set_variable_5": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection",
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['microsofttranslator']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/Translate",
+                                                "queries": {
+                                                    "languageTo": "@items('For_each_2')?['iso6391Name']",
+                                                    "query": "@variables('msgCentreName')"
+                                                }
+                                            }
+                                        },
+                                        "Translate_text_4": {
+                                            "runAfter": {
+                                                "Set_variable_4": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection",
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['microsofttranslator']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/Translate",
+                                                "queries": {
+                                                    "languageTo": "@items('For_each_2')?['iso6391Name']",
+                                                    "query": "@variables('msgTravelTimeMap')"
+                                                }
+                                            }
+                                        },
+                                        "Translate_text_5": {
+                                            "runAfter": {
+                                                "Set_variable_6": [
+                                                    "Succeeded"
+                                                ]
+                                            },
+                                            "type": "ApiConnection",
+                                            "inputs": {
+                                                "host": {
+                                                    "connection": {
+                                                        "name": "@parameters('$connections')['microsofttranslator']['connectionId']"
+                                                    }
+                                                },
+                                                "method": "get",
+                                                "path": "/Translate",
+                                                "queries": {
+                                                    "languageTo": "@items('For_each_2')?['iso6391Name']",
+                                                    "query": "@variables('min')"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "runAfter": {
+                                        "Set_variable": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Foreach"
+                                },
+                                "Get_route": {
+                                    "runAfter": {
+                                        "For_each": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['bingmaps']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/REST/V1/Routes/Driving",
+                                        "queries": {
+                                            "travelMode": "Walking",
+                                            "wp.0": "@{variables('clientLocation')}, Toronto",
+                                            "wp.1": "38 Bathurst St, Toronto"
+                                        }
+                                    }
+                                },
+                                "Get_route_2": {
+                                    "runAfter": {
+                                        "For_each": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['bingmaps']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/REST/V1/Routes/Driving",
+                                        "queries": {
+                                            "travelMode": "Walking",
+                                            "wp.0": "@{variables('clientLocation')}, Toronto",
+                                            "wp.1": "502 Spadina Ave, Toronto"
+                                        }
+                                    }
+                                },
+                                "Get_route_3": {
+                                    "runAfter": {
+                                        "For_each": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['bingmaps']['connectionId']"
+                                            }
+                                        },
+                                        "method": "get",
+                                        "path": "/REST/V1/Routes/Driving",
+                                        "queries": {
+                                            "travelMode": "Walking",
+                                            "wp.0": "@{variables('clientLocation')}, Toronto",
+                                            "wp.1": "412 Queen St E, Toronto"
+                                        }
+                                    }
+                                },
+                                "Send_text_respite_centres_open": {
+                                    "runAfter": {
+                                        "For_each_2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "body": {
+                                            "body": "@variables('centreStatusMessage')",
+                                            "from": "+16477244717",
+                                            "to": "@variables('clientNumber')"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['twilio']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/Messages.json"
+                                    }
+                                },
+                                "Set_dist1": {
+                                    "runAfter": {
+                                        "Get_route": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "dist1",
+                                        "value": "@body('Get_route')?['travelDurationTraffic']"
+                                    }
+                                },
+                                "Set_dist2": {
+                                    "runAfter": {
+                                        "Get_route_2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "dist2",
+                                        "value": "@body('Get_route_2')?['travelDurationTraffic']"
+                                    }
+                                },
+                                "Set_dist3": {
+                                    "runAfter": {
+                                        "Get_route_3": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "dist3",
+                                        "value": "@body('Get_route_3')?['travelDurationTraffic']"
+                                    }
+                                },
+                                "Set_variable": {
+                                    "runAfter": {},
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "centreStatusMessage",
+                                        "value": "Thank you for contacting the City of Toronto weather respite network. The temperature in Toronto, ON is currently @{variables('temperature')}°C. Weather respite centres are currently in operation."
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Initialize_travel_time_unit_message": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "else": {
+                                "actions": {
+                                    "For_each_3": {
+                                        "foreach": "@body('Detect_Language')?['detectedLanguages']",
+                                        "actions": {
+                                            "Translate_text_2": {
+                                                "runAfter": {},
+                                                "type": "ApiConnection",
+                                                "inputs": {
+                                                    "host": {
+                                                        "connection": {
+                                                            "name": "@parameters('$connections')['microsofttranslator']['connectionId']"
+                                                        }
+                                                    },
+                                                    "method": "get",
+                                                    "path": "/Translate",
+                                                    "queries": {
+                                                        "languageTo": "@items('For_each_3')?['iso6391Name']",
+                                                        "query": "@variables('centreStatusMessage')"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "runAfter": {
+                                            "Set_variable_2": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Foreach"
+                                    },
+                                    "Send_text_no_centres_open": {
+                                        "runAfter": {
+                                            "For_each_3": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection",
+                                        "inputs": {
+                                            "body": {
+                                                "body": "c@{variables('centreStatusMessage')}",
+                                                "from": "+16477244717",
+                                                "to": "@variables('clientNumber')"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['twilio']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/Messages.json"
+                                        }
+                                    },
+                                    "Set_variable_2": {
+                                        "runAfter": {},
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                            "name": "centreStatusMessage",
+                                            "value": "Thank you for contacting the City of Toronto weather respite network. The temperature in Toronto, ON is currently @{variables('temperature')}°C. We apologize, weather respite centres are currently not in operation. Centres will open when temperatures drop below -20°C or above 10°C."
+                                        }
+                                    },
+                                    "Terminate": {
+                                        "runAfter": {
+                                            "Send_text_no_centres_open": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "Terminate",
+                                        "inputs": {
+                                            "runStatus": "Succeeded"
+                                        }
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "greater": [
+                                            "@variables('temperature')",
+                                            10
+                                        ]
+                                    },
+                                    {
+                                        "less": [
+                                            "@variables('temperature')",
+                                            -20
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "bingmaps": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_bingmaps_name'))]",
+                                "connectionName": "bingmaps",
+                                "id": "/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/bingmaps"
+                            },
+                            "cognitiveservicestextanalytics": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_cognitiveservicestextanalytics_name'))]",
+                                "connectionName": "cognitiveservicestextanalytics",
+                                "id": "/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/cognitiveservicestextanalytics"
+                            },
+                            "microsofttranslator": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_microsofttranslator_name'))]",
+                                "connectionName": "microsofttranslator",
+                                "id": "/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/microsofttranslator"
+                            },
+                            "msnweather": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_msnweather_name'))]",
+                                "connectionName": "msnweather",
+                                "id": "/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/msnweather"
+                            },
+                            "twilio": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_twilio_name'))]",
+                                "connectionName": "twilio",
+                                "id": "/subscriptions/82871432-2076-4970-a229-bbe93965992f/providers/Microsoft.Web/locations/canadaeast/managedApis/twilio"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
